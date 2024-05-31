@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Book</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Set camera position and rotation to view the book at an angle
+        camera.position.set(0, -3, 5);
+        camera.lookAt(0, 0, 0);
+
+        const book = new THREE.Group();
+
+        const createPage = (width, height, color) => {
+            const pageGroup = new THREE.Group();
+            
+            const geometry = new THREE.PlaneGeometry(width, height);
+            const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
+            const page = new THREE.Mesh(geometry, material);
+
+            // Move the page to the left edge of the group
+            page.position.set(width / 2, 0, 0);
+            pageGroup.add(page);
+
+            // Add a random object to the page
+            addRandomObjectToPage(page);
+
+            return pageGroup;
+        };
+
+        const addRandomObjectToPage = (page) => {
+            // Clear existing objects on the page
+            while (page.children.length > 0) {
+                page.remove(page.children[0]);
+            }
+
+            // Create a random object (cube or sphere)
+            const isCube = Math.random() > 0.5;
+            let object;
+            if (isCube) {
+                const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+                const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                object = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            } else {
+                const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+                const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                object = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            }
+
+            // Position the object slightly above the page
+            object.position.set(0, 0, 0.5);
+            page.add(object);
+        };
+
+        const pageWidth = 7;
+        const pageHeight = 5;
+        const pageCount = 10;
+        const pageThickness = 0.02;
+
+        for (let i = 0; i < pageCount; i++) {
+            const page = createPage(pageWidth, pageHeight, 0xffffff * Math.random());
+            page.position.x = i * pageThickness;
+            book.add(page);
+        }
+
+        scene.add(book);
+
+        let currentPage = 0;
+
+        const flipPage = (direction) => {
+            if (direction === 'next' && currentPage < pageCount - 1) {
+                gsap.to(book.children[currentPage].rotation, { y: -Math.PI, duration: 1 }).then(() => {
+                    addRandomObjectToPage(book.children[currentPage].children[0]);
+                });
+                currentPage++;
+            } else if (direction === 'prev' && currentPage > 0) {
+                currentPage--;
+                gsap.to(book.children[currentPage].rotation, { y: 0, duration: 1 }).then(() => {
+                    addRandomObjectToPage(book.children[currentPage].children[0]);
+                });
+            }
+        };
+
+        document.addEventListener('click', (event) => {
+            const x = event.clientX / window.innerWidth;
+            if (x < 0.5) {
+                flipPage('prev');
+            } else {
+                flipPage('next');
+            }
+        });
+
+        const animate = function () {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        };
+
+        animate();
+    </script>
+</body>
+</html>
